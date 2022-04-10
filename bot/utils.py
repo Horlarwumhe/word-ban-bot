@@ -1,7 +1,7 @@
 from bot.db import DB
 
 BANNED_WORDS_MESSAGE = (
-    'Hello {user}, Your {type}, {name}\n'
+    'Hello {user},{name}\n'
     'is among the banned words for this chat\n'
     '{word} is banned in this chat'
     "kindly change the name to something else.\n"
@@ -24,16 +24,13 @@ def check_banned_words(name):
 def check_admin_names(admin_names, name):
     # remove no alphabetic character ,eg, _
     username = ''.join(filter(str.isalpha, name)).lower()
-    print(username,admin_names)
 
     for admin in admin_names:
         try:
             fname, lname = map(str.lower,admin.split())
         except ValueError:
-            fname = lname = admin.split()[0].lower()
-        print(fname,lname)
-        if fname in username or lname in username:
-            print('found ',username,' in admin ',fname,'-',lname)
+            fname = lname = admin.split()[0]
+        if fname.lower() in username or lname.lower() in username:
             return admin
     return None
 
