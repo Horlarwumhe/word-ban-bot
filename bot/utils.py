@@ -1,9 +1,9 @@
 from bot.db import DB
 
 BANNED_WORDS_MESSAGE = (
-    'Hello {user},{name}\n'
+    'Hello {user},Your name {name}\n'
     'is among the banned words for this chat\n'
-    '{word} is banned in this chat'
+    '{word} is banned in this chat\n'
     "kindly change the name to something else.\n"
     "You will be removed after 5 mins if you dont change your name")
 

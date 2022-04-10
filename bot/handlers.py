@@ -69,7 +69,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
 
     if warned:
         context.job_queue.run_once(check_warned_user,
-                                   20,
+                                   60*5,
                                    context={
                                        "chat_id": chat_member.chat.id,
                                        'user_id': user.id
