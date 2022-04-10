@@ -1,3 +1,4 @@
+import os
 import sqlite3 as sqlite
 
 from bot.db import DB
@@ -68,8 +69,9 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
             break
 
     if warned:
+        t = os.environ.get("USER_WARNED_TIME",300)
         context.job_queue.run_once(check_warned_user,
-                                   60*5,
+                                   int(t),
                                    context={
                                        "chat_id": chat_member.chat.id,
                                        'user_id': user.id
