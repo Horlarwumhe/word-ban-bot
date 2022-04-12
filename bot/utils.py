@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from bot.db import DB
+from bot.db import get_banned_words_list
 
 logger = logging.getLogger('bot')
 BANNED_WORDS_MESSAGE = (
@@ -23,15 +23,11 @@ def check_banned_words(name, chat_id):
     logger.info("Checking for user name '%s' in the chat banned word list",
                 name)
     name = ''.join(filter(str.isalpha, name)).lower()
-    with DB() as db:
-        cur = db.execute(
-            'select word from banned_words where id > 0 and chat_id=?',
-            (chat_id, ))
-        banned_words = [row['word'].lower() for row in cur]
-        for word in banned_words:
-            if word in name:
-                found = word
-                break
+    banned_words = get_banned_words_list(chat_id)
+    for word in banned_words:
+        if word in name:
+            found = word
+            break
     return found
 
 
