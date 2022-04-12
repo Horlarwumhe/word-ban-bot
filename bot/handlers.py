@@ -9,6 +9,7 @@ from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
 from bot.utils import (BANNED_WORDS_MESSAGE, chat_admin_only,
                        check_banned_words, check_admin_names, list_admin_names,
                        log_chat_member, log_command, special_command)
+from bot import config
 
 logger = logging.getLogger('bot')
 
@@ -97,7 +98,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
         Reason: %s
 
         """, chat_member.chat.title, user.first_name, '\n'.join(reason))
-        t = os.environ.get("USER_WARNED_TIME", 300)
+        t = config.USER_WARNED_TIME
         context.job_queue.run_once(check_warned_user,
                                    int(t),
                                    context={
