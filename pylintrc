@@ -1,0 +1,6 @@
+
+[MESSAGE CONTROl]
+disable=missing-function-docstring,
+       missing-module-docstring,
+       missing-class-docstring,
+       invalid-name,
