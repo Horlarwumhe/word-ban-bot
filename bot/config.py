@@ -1,0 +1,3 @@
+BOT_TOKEN = ''
+DATABASE_NAME = 'botdata.db'
+USER_WARNED_TIME = 60*5
