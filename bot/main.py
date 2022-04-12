@@ -1,15 +1,21 @@
+import logging
 import os
+
+from telegram.ext import (CallbackContext, ChatMemberHandler, CommandHandler,
+                          Updater)
 
 import bot.handlers as handlers
 from bot.db import init_db
-from telegram.ext import (CallbackContext, ChatMemberHandler, CommandHandler,
-                          Updater)
+
+logger = logging.getLogger('bot')
 
 
 def main():
     token = os.environ.get("BOT_TOKEN")
     if not token:
-        raise ValueError("BOT_TOKEN not found")
+        logger.info("BOT_TOKEN token not set\nexisting....")
+        exit(1)
+
     init_db()
     updater = Updater(token)
 
@@ -22,12 +28,16 @@ def main():
     dispatcher.add_handler(CommandHandler("list", handlers.list_word))
     dispatcher.add_handler(CommandHandler("add", handlers.add_word))
     dispatcher.add_handler(CommandHandler("remove", handlers.remove_word))
-    #dispatcher.add_handler(M(F.user(1472613308),u))
-    dispatcher.add_handler(ChatMemberHandler(handlers.my_chat_member,ChatMemberHandler.MY_CHAT_MEMBER))
-    dispatcher.add_handler(ChatMemberHandler(handlers.new_chat_member,ChatMemberHandler.CHAT_MEMBER))
+    dispatcher.add_handler(
+        ChatMemberHandler(handlers.my_chat_member,
+                          ChatMemberHandler.MY_CHAT_MEMBER))
+    dispatcher.add_handler(
+        ChatMemberHandler(handlers.new_chat_member,
+                          ChatMemberHandler.CHAT_MEMBER))
 
     # Start the Bot
-    updater.start_polling(allowed_updates=['my_chat_member','chat_member','message'])
+    updater.start_polling(
+        allowed_updates=['my_chat_member', 'chat_member', 'message'])
 
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
     # SIGABRT. This should be used most of the time, since start_polling() is

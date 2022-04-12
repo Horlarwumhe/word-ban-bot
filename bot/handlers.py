@@ -1,11 +1,16 @@
+import logging
 import os
 import sqlite3 as sqlite
 
-from bot.db import DB
-from bot.utils import (BANNED_WORDS_MESSAGE, check_admin_names,
-                       check_banned_words, list_admin_names)
 from telegram import Update
-from telegram.ext import CallbackContext, Updater
+from telegram.ext import CallbackContext
+
+from bot.db import DB
+from bot.utils import (BANNED_WORDS_MESSAGE, chat_admin_only,
+                       check_admin_names, check_banned_words, list_admin_names,
+                       log_chat_member, log_command, special_command)
+
+logger = logging.getLogger('bot')
 
 
 def my_chat_member(update: Update, context: CallbackContext):
@@ -16,19 +21,25 @@ def my_chat_member(update: Update, context: CallbackContext):
         return
     if status == "member":
         text = "For the bot to function in this chat, make the bot admin of this chat"
-        context.bot.send_message(chat_member.chat.id, text)
+        message = context.bot.send_message(chat_member.chat.id, text)
+        context.job_queue.run_once(delete_message, 60 * 10, context=message)
+    elif status == 'administrator':
+        logger.info("Bot is now admin in the chat %s", chat_member.chat.title)
 
 
+@log_chat_member
 def new_chat_member(update: Update, context: CallbackContext) -> None:
     chat_member = update.chat_member
+    user = chat_member.new_chat_member.user
     status = chat_member.new_chat_member.status
+    chat_id = chat_member.chat.id
+    reason = []
     if status != 'member':
         return
     warned = False
     username = chat_member.new_chat_member.user.username or ''
     first_name = chat_member.new_chat_member.user.first_name or ''
     last_name = chat_member.new_chat_member.user.last_name or ''
-    user = chat_member.new_chat_member.user
     # bot = context.bot.send_message(message,chat_id=chat_member.chat.id)
 
     if username:
@@ -41,35 +52,52 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     if not similar_name:
         similar_name = check_admin_names(admin_names, last_name)
     if similar_name:
+        reason.append("user name similar to chat admins name")
         warned = True
         message = (
             'Hello {user}, Your first name/last name {first_name}-{last_name}\n'
             'is similar to one of the admins of this chat ({similar_name})\n'
             "kindly change the name to something else.\n"
             "You will be removed after 5 mins if you dont change your name")
-        message = message.format(user=name,
-                                 first_name=first_name,
-                                 last_name=last_name,
-                                 similar_name=similar_name)
-        context.bot.send_message(chat_member.chat.id,
-                                 message,
-                                 parse_mode="HTML")
+        text = message.format(user=name,
+                              first_name=first_name,
+                              last_name=last_name,
+                              similar_name=similar_name)
+        message = context.bot.send_message(chat_member.chat.id,
+                                           text,
+                                           parse_mode="HTML")
+        context.job_queue.run_once(delete_message,
+                                   60 * 5,
+                                   context=message,
+                                   name=str(user.id))
 
     # check for banned words
-    for details in (first_name,last_name,username):
-        word = check_banned_words(details)
+    for details in (first_name, last_name, username):
+        word = check_banned_words(details, chat_id)
         if word:
+            reason.append("user name in banned word list")
             warned = True
-            message = BANNED_WORDS_MESSAGE.format(user=name,
-                                              name=details,
-                                              word=word)
-            context.bot.send_message(chat_member.chat.id,
-                                 message,
-                                 parse_mode="HTML")
+            text = BANNED_WORDS_MESSAGE.format(user=name,
+                                               name=details,
+                                               word=word)
+            message = context.bot.send_message(chat_member.chat.id,
+                                               text,
+                                               parse_mode="HTML")
+            context.job_queue.run_once(delete_message,
+                                       60 * 5,
+                                       context=message,
+                                       name=str(user.id))
             break
 
     if warned:
-        t = os.environ.get("USER_WARNED_TIME",300)
+        logger.info(
+            """
+        User details violate the chat policy in chat %s
+        first_name = %s
+        Reason: %s
+
+        """, chat_member.chat.title, user.first_name,'\n'.join(reason))
+        t = os.environ.get("USER_WARNED_TIME", 300)
         context.job_queue.run_once(check_warned_user,
                                    int(t),
                                    context={
@@ -77,66 +105,152 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
                                        'user_id': user.id
                                    },
                                    name=str(user.id))
+    else:
+        logger.info(
+            '''
+User is %s verified. no banned words in user details.
+user details not similar to the chat admins details.
+''', user.first_name)
+
 
 # /start /help
-def start(update:Update,context:CallbackContext):
+
+
+@log_command
+@chat_admin_only
+def start(update: Update, context: CallbackContext):
     message = update.message
     text = """/add <word> to add new word
 /remove <word> to remove word
 /list to list all banned words
     """
-    message.reply_text(text)
+    message = message.reply_text(text)
+    if message.chat.type != 'private':
+        context.job_queue.run_once(delete_message, 60 * 5, context=message)
 
+
+@log_command
+@chat_admin_only
+@special_command
 def add_word(update: Update, context: CallbackContext):
     message = update.message
+    args = context.args
+    user_id = message.from_user.id
+    if message.chat.type == 'private':
+        chat_link = args.pop()
+        chat_id = context.bot.get_chat(chat_link).id
+
+    else:
+        chat_id = message.chat.id
+        context.job_queue.run_once(delete_message,
+                                   60 * 1,
+                                   context=message,
+                                   name=str(user_id))
     try:
-        word = context.args[0]
+        word = args[0]
     except IndexError:
         text = 'Add new word\nUsage: /add <word>'
-        message.reply_text(text)
-        return
+        message = message.reply_text(text)
+    else:
+        with DB() as db:
+            c = 0
+            for word in args:
+                try:
+                    row = db.execute(
+                        '''
+                        select * from banned_words where word=? and chat_id=?;
+                        ''', (word, chat_id)).fetchone()
+                    if row:
+                        logger.info("%s already exist ", word)
+                        continue
 
-    with DB() as db:
-        c = 0
-        for word in context.args:
-            c += 1
-            try:
-                db.execute(
-                    '''
-                insert into banned_words(word) values(?);
-                    ''', (word, ))
-            except sqlite.IntegrityError:
-                pass
+                    db.execute(
+                        '''
+                    insert into banned_words(word,chat_id) values(?,?);
+                    ''', (word, chat_id))
+                except sqlite.IntegrityError as e:
+                    logger.info(e)
+                else:
+                    c += 1
     if c == 1:
-        message.reply_text(f'{word} added to the list')
+        message = message.reply_text(f'{word} added to the list')
     elif c > 1:
-        message.reply_text(f"New {c} words added to the list")
+        message = message.reply_text(f"New {c} words added to the list")
+    else:
+        message = message.reply_text(f"{word} already exist")
+
+    if message.chat.type != 'private':
+        context.job_queue.run_once(delete_message,
+                                   60 * 1,
+                                   context=message,
+                                   name=str(user_id))
 
 
 #/remove <word>
+@log_command
+@chat_admin_only
+@special_command
 def remove_word(update: Update, context: CallbackContext):
     message = update.message
+    user_id = message.from_user.id
+    args = context.args
+    if message.chat.type == 'private':
+        chat_link = args.pop()
+        chat_id = context.bot.get_chat(chat_link).id
+    else:
+        context.job_queue.run_once(delete_message,
+                                   60 * 1,
+                                   context=message,
+                                   name=str(user_id))
+        chat_id = message.chat.id
     try:
-        word = context.args[0]
+        word = args[0]
     except IndexError:
         text = 'Remove word\nUsage: /remove <word>'
-        message.reply_text(text)
-        return
-    with DB() as db:
-        db.execute(
-            '''
-            delete from banned_words where word=?;
-                ''', (word, ))
-        message.reply_text(f'{word} removed from the list')
+        message = message.reply_text(text)
+    else:
+        with DB() as db:
+            db.execute(
+                '''
+                delete from banned_words where word=? and chat_id=?;
+                    ''', (word, chat_id))
+            message = message.reply_text(f'{word} removed from the list')
+    if message.chat.type != "private":
+        context.job_queue.run_once(delete_message,
+                                   60 * 1,
+                                   context=message,
+                                   name=str(user_id))
 
 
 #/list
+@log_command
+@chat_admin_only
+@special_command
 def list_word(update: Update, context: CallbackContext):
+    message = update.message
+    user_id = message.from_user.id
+    args = context.args
+    if message.chat.type == 'private':
+        chat_link = args.pop()
+        chat_id = context.bot.get_chat(chat_link).id
+    else:
+        chat_id = message.chat.id
+        context.job_queue.run_once(delete_message,
+                                   60 * 1,
+                                   context=message,
+                                   name=str(user_id))
     with DB() as db:
         cur = db.execute(
-            'select word from banned_words where id > 0').fetchall()
-        words = "Banned word list\n"+'\n'.join(row['word'] for row in cur)
-        update.message.reply_text(words)
+            'select word from banned_words where id > 0 and chat_id=?',
+            (chat_id, )).fetchall()
+        words = "Banned word list\n\n" + '\n'.join(row['word'] for row in cur)
+        message = update.message.reply_text(words)
+        #context.job_queue.run_once(delete_message,30,context=message,name=str(user_id))
+    if message.chat.type != 'private':
+        context.job_queue.run_once(delete_message,
+                                   60 * 10,
+                                   context=message,
+                                   name=str(user_id))
 
 
 def check_warned_user(context: CallbackContext):
@@ -147,15 +261,18 @@ def check_warned_user(context: CallbackContext):
     if user_member and user_member.status != "member":
         # The user is no more member
         return
+    banned = False
     if user_member:
-        fname = check_banned_words(user_member.user.first_name or '')
-        lname = check_banned_words(user_member.user.last_name or '')
-        username = check_banned_words(user_member.user.first_name or '')
+        fname = check_banned_words(user_member.user.first_name or '', chat_id)
+        lname = check_banned_words(user_member.user.last_name or '', chat_id)
+        username = check_banned_words(user_member.user.first_name or '',
+                                      chat_id)
         if lname or fname or username:
             # user details in banned words
             # user has been warned
+            #reason = "Name is banned word list"
             context.bot.ban_chat_member(chat_id, user_id)
-            return
+            banned = True
         else:
             admins = list_admin_names(context.bot, chat_id)
             fname = check_admin_names(admins, user_member.user.first_name
@@ -163,4 +280,12 @@ def check_warned_user(context: CallbackContext):
             lname = check_admin_names(admins, user_member.user.last_name or '')
             if lname or fname:
                 context.bot.ban_chat_member(chat_id, user_id)
-                return
+                banned = True
+        if banned:
+            logger.info("User is banned '%s' ",user_member.user.first_name)
+
+
+def delete_message(context: CallbackContext):
+    # delete a message after some minutes
+    message = context.job.context
+    message.delete()
