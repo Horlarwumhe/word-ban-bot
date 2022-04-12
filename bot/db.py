@@ -2,6 +2,7 @@ import sqlite3 as sqlite
 
 
 class DB:
+
     def __init__(self, name=None):
         if not name:
             self.name = 'botdata.db'
@@ -32,5 +33,5 @@ def init_db():
     with DB() as db:
         db.execute('''
   create table if not exists
-   banned_words(id integer primary key,word unique);
+   banned_words(id integer primary key,word text, chat_id integer);
    ''')
