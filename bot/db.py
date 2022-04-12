@@ -1,11 +1,12 @@
 import sqlite3 as sqlite
+from bot import config
 
 
 class DB:
 
     def __init__(self, name=None):
         if not name:
-            self.name = 'botdata.db'
+            self.name = config.DATABASE_NAME
         else:
             self.name = name
         self.con = sqlite.connect(self.name)
