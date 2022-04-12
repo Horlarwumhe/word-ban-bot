@@ -5,9 +5,9 @@ import sqlite3 as sqlite
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from bot.db import DB
+from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
 from bot.utils import (BANNED_WORDS_MESSAGE, chat_admin_only,
-                       check_admin_names, check_banned_words, list_admin_names,
+                       check_banned_words, check_admin_names, list_admin_names,
                        log_chat_member, log_command, special_command)
 
 logger = logging.getLogger('bot')
@@ -96,7 +96,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
         first_name = %s
         Reason: %s
 
-        """, chat_member.chat.title, user.first_name,'\n'.join(reason))
+        """, chat_member.chat.title, user.first_name, '\n'.join(reason))
         t = os.environ.get("USER_WARNED_TIME", 300)
         context.job_queue.run_once(check_warned_user,
                                    int(t),
@@ -152,29 +152,19 @@ def add_word(update: Update, context: CallbackContext):
         text = 'Add new word\nUsage: /add <word>'
         message = message.reply_text(text)
     else:
-        with DB() as db:
-            c = 0
-            for word in args:
-                try:
-                    row = db.execute(
-                        '''
-                        select * from banned_words where word=? and chat_id=?;
-                        ''', (word, chat_id)).fetchone()
-                    if row:
-                        logger.info("%s already exist ", word)
-                        continue
-
-                    db.execute(
-                        '''
-                    insert into banned_words(word,chat_id) values(?,?);
-                    ''', (word, chat_id))
-                except sqlite.IntegrityError as e:
-                    logger.info(e)
-                else:
-                    c += 1
+        banned_words = get_banned_words_list(chat_id)
+        c = 0
+        for word in args:
+            if word in banned_words:
+                # already in the banned words
+                continue
+            add_banned_word(chat_id, word)
+            c += 1
     if c == 1:
+        # one word added
         message = message.reply_text(f'{word} added to the list')
     elif c > 1:
+        # more than one
         message = message.reply_text(f"New {c} words added to the list")
     else:
         message = message.reply_text(f"{word} already exist")
@@ -209,12 +199,8 @@ def remove_word(update: Update, context: CallbackContext):
         text = 'Remove word\nUsage: /remove <word>'
         message = message.reply_text(text)
     else:
-        with DB() as db:
-            db.execute(
-                '''
-                delete from banned_words where word=? and chat_id=?;
-                    ''', (word, chat_id))
-            message = message.reply_text(f'{word} removed from the list')
+        remove_banned_word(chat_id, word)
+        message = message.reply_text(f'{word} removed from the list')
     if message.chat.type != "private":
         context.job_queue.run_once(delete_message,
                                    60 * 1,
@@ -239,13 +225,10 @@ def list_word(update: Update, context: CallbackContext):
                                    60 * 1,
                                    context=message,
                                    name=str(user_id))
-    with DB() as db:
-        cur = db.execute(
-            'select word from banned_words where id > 0 and chat_id=?',
-            (chat_id, )).fetchall()
-        words = "Banned word list\n\n" + '\n'.join(row['word'] for row in cur)
-        message = update.message.reply_text(words)
-        #context.job_queue.run_once(delete_message,30,context=message,name=str(user_id))
+    banned_words = get_banned_words_list(chat_id)
+    words = "Banned word list\n\n" + '\n'.join(banned_words)
+    message = update.message.reply_text(words)
+    #context.job_queue.run_once(delete_message,30,context=message,name=str(user_id))
     if message.chat.type != 'private':
         context.job_queue.run_once(delete_message,
                                    60 * 10,
