@@ -189,3 +189,11 @@ def special_command(func):
         return func(update, context)
 
     return wrapper
+
+
+def sanitize_word(word):
+    '''
+    sanitize word before adding it to database.
+    currently, the word is only convert to lowercase
+    '''
+    return word.lower()

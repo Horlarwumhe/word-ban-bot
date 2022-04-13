@@ -8,11 +8,10 @@ from telegram.ext import CallbackContext
 from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
 from bot.utils import (BANNED_WORDS_MESSAGE, chat_admin_only,
                        check_banned_words, check_admin_names, list_admin_names,
-                       log_chat_member, log_command, special_command)
+                       log_chat_member, log_command, sanitize_word, special_command)
 from bot import config
 
 logger = logging.getLogger('bot')
-
 
 def my_chat_member(update: Update, context: CallbackContext):
     chat_member = update.my_chat_member
@@ -155,7 +154,8 @@ def add_word(update: Update, context: CallbackContext):
     else:
         banned_words = get_banned_words_list(chat_id)
         c = 0
-        for word in args:
+        words = map(sanitize_word,args)
+        for word in words:
             if word in banned_words:
                 # already in the banned words
                 continue
@@ -200,8 +200,13 @@ def remove_word(update: Update, context: CallbackContext):
         text = 'Remove word\nUsage: /remove <word>'
         message = message.reply_text(text)
     else:
-        remove_banned_word(chat_id, word)
-        message = message.reply_text(f'{word} removed from the list')
+        words = map(sanitize_word,args)
+        c = 0
+        for word in words:
+            remove_banned_word(chat_id, word)
+            c += 1
+        text = "{} removed from the list".format(word if c == 1 else f"{c} words")
+        message = message.reply_text(text)
     if message.chat.type != "private":
         context.job_queue.run_once(delete_message,
                                    60 * 1,
