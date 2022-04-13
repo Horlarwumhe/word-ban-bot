@@ -11,5 +11,8 @@ USER_WARNED_TIME = 60 * 5
 # time to delete bot commands and bot messages
 DELETE_MESSAGE_TIME = 60 * 1 
 
-# time to delete bot commands and bot messages, but longer that DELETE_MESSAGE_TIME
-DELETE_MESSAGE_LONG_TIME = 60 * 10 
+# time to delete bot commands and bot messages, but longer than DELETE_MESSAGE_TIME
+DELETE_MESSAGE_LONG_TIME = 60 * 10
+
+# time to delete bot commands and bot messages, but shorter than DELETE_MESSAGE_LONG_TIME
+DELETE_MESSAGE_SHORT_TIME = 60 * 5 
