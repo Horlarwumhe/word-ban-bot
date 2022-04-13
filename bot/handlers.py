@@ -8,10 +8,12 @@ from telegram.ext import CallbackContext
 from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
 from bot.utils import (BANNED_WORDS_MESSAGE, chat_admin_only,
                        check_banned_words, check_admin_names, list_admin_names,
-                       log_chat_member, log_command, sanitize_word, special_command)
+                       log_chat_member, log_command, sanitize_word,
+                       special_command)
 from bot import config
 
 logger = logging.getLogger('bot')
+
 
 def my_chat_member(update: Update, context: CallbackContext):
     chat_member = update.my_chat_member
@@ -22,7 +24,9 @@ def my_chat_member(update: Update, context: CallbackContext):
     if status == "member":
         text = "For the bot to function in this chat, make the bot admin of this chat"
         message = context.bot.send_message(chat_member.chat.id, text)
-        context.job_queue.run_once(delete_message, 60 * 10, context=message)
+        context.job_queue.run_once(delete_message,
+                                   config.DELETE_MESSAGE_LONG_TIME,
+                                   context=message)
     elif status == 'administrator':
         logger.info("Bot is now admin in the chat %s", chat_member.chat.title)
 
@@ -67,7 +71,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
                                            text,
                                            parse_mode="HTML")
         context.job_queue.run_once(delete_message,
-                                   60 * 5,
+                                   config.USER_WARNED_TIME,
                                    context=message,
                                    name=str(user.id))
 
@@ -84,7 +88,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
                                                text,
                                                parse_mode="HTML")
             context.job_queue.run_once(delete_message,
-                                       60 * 5,
+                                       config.USER_WARNED_TIME,
                                        context=message,
                                        name=str(user.id))
             break
@@ -97,9 +101,8 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
         Reason: %s
 
         """, chat_member.chat.title, user.first_name, '\n'.join(reason))
-        t = config.USER_WARNED_TIME
         context.job_queue.run_once(check_warned_user,
-                                   int(t),
+                                   config.USER_WARNED_TIME,
                                    context={
                                        "chat_id": chat_member.chat.id,
                                        'user_id': user.id
@@ -126,7 +129,9 @@ def start(update: Update, context: CallbackContext):
     """
     message = message.reply_text(text)
     if message.chat.type != 'private':
-        context.job_queue.run_once(delete_message, 60 * 5, context=message)
+        context.job_queue.run_once(delete_message,
+                                   config.DELETE_MESSAGE_TIME,
+                                   context=message)
 
 
 @log_command
@@ -143,7 +148,7 @@ def add_word(update: Update, context: CallbackContext):
     else:
         chat_id = message.chat.id
         context.job_queue.run_once(delete_message,
-                                   60 * 1,
+                                   config.DELETE_MESSAGE_TIME,
                                    context=message,
                                    name=str(user_id))
     try:
@@ -154,7 +159,7 @@ def add_word(update: Update, context: CallbackContext):
     else:
         banned_words = get_banned_words_list(chat_id)
         c = 0
-        words = map(sanitize_word,args)
+        words = map(sanitize_word, args)
         for word in words:
             if word in banned_words:
                 # already in the banned words
@@ -172,7 +177,7 @@ def add_word(update: Update, context: CallbackContext):
 
     if message.chat.type != 'private':
         context.job_queue.run_once(delete_message,
-                                   60 * 1,
+                                   config.DELETE_MESSAGE_TIME,
                                    context=message,
                                    name=str(user_id))
 
@@ -190,7 +195,7 @@ def remove_word(update: Update, context: CallbackContext):
         chat_id = context.bot.get_chat(chat_link).id
     else:
         context.job_queue.run_once(delete_message,
-                                   60 * 1,
+                                   config.DELETE_MESSAGE_TIME,
                                    context=message,
                                    name=str(user_id))
         chat_id = message.chat.id
@@ -200,16 +205,17 @@ def remove_word(update: Update, context: CallbackContext):
         text = 'Remove word\nUsage: /remove <word>'
         message = message.reply_text(text)
     else:
-        words = map(sanitize_word,args)
+        words = map(sanitize_word, args)
         c = 0
         for word in words:
             remove_banned_word(chat_id, word)
             c += 1
-        text = "{} removed from the list".format(word if c == 1 else f"{c} words")
+        text = "{} removed from the list".format(word if c ==
+                                                 1 else f"{c} words")
         message = message.reply_text(text)
     if message.chat.type != "private":
         context.job_queue.run_once(delete_message,
-                                   60 * 1,
+                                   config.DELETE_MESSAGE_TIME,
                                    context=message,
                                    name=str(user_id))
 
@@ -228,7 +234,7 @@ def list_word(update: Update, context: CallbackContext):
     else:
         chat_id = message.chat.id
         context.job_queue.run_once(delete_message,
-                                   60 * 1,
+                                   config.DELETE_MESSAGE_TIME,
                                    context=message,
                                    name=str(user_id))
     banned_words = get_banned_words_list(chat_id)
@@ -237,7 +243,7 @@ def list_word(update: Update, context: CallbackContext):
     #context.job_queue.run_once(delete_message,30,context=message,name=str(user_id))
     if message.chat.type != 'private':
         context.job_queue.run_once(delete_message,
-                                   60 * 10,
+                                   config.DELETE_MESSAGE_LONG_TIME,
                                    context=message,
                                    name=str(user_id))
 
@@ -271,7 +277,7 @@ def check_warned_user(context: CallbackContext):
                 context.bot.ban_chat_member(chat_id, user_id)
                 banned = True
         if banned:
-            logger.info("User is banned '%s' ",user_member.user.first_name)
+            logger.info("User is banned '%s' ", user_member.user.first_name)
 
 
 def delete_message(context: CallbackContext):
