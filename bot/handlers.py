@@ -48,7 +48,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     if username:
         name = "@{}".format(username)
     else:
-        name = '''<a href='tg://user?id={id}'> {first_name} </a>'''.format(
+        name = '<a href="tg://user?id={id}"> {first_name} </a>'.format(
             id=user.id, first_name=user.first_name)
     admin_names = list_admin_names(context.bot, chat_member.chat.id)
     similar_name = check_admin_names(admin_names, first_name)
