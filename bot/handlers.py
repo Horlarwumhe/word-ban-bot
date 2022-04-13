@@ -152,12 +152,12 @@ def add_word(update: Update, context: CallbackContext):
             c += 1
         if c == 1:
             # one word added
-            text = (f'{word} added to the list')
+            text = f'{word} added to the list'
         elif c > 1:
             # more than one
-            text = (f"New {c} words added to the list")
+            text = f"New {c} words added to the list"
         else:
-            text = (f"{word} already exist")
+            text = f"{word} already exist"
         reply_message(message,text,context,delete_time=delete_time)
 
 
