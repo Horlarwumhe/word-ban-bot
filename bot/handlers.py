@@ -59,7 +59,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
         warned = True
         text = (
             'Hello {user}, Your first name/last name {first_name}-{last_name}\n'
-            'is similar to one of the admins of this chat ({similar_name})\n'
+            'is similar to one of the admins of this chat, <b>{similar_name}</b>\n'
             "kindly change the name to something else.\n"
             "You will be removed after 5 mins if you dont change your name")
         text = text.format(user=name,
@@ -81,13 +81,12 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
             break
 
     if warned:
-        logger.info(
-            """
-        User details violate the chat policy in chat %s
-        first_name = %s
-        Reason: %s
-
-        """, chat_member.chat.title, user.first_name, '\n'.join(reason))
+        log = (
+        "User details violate the chat policy in chat %s\n"
+        "first_name = %s \n"
+        "Reason: %s\n"
+         )
+        logger.info(log, chat_member.chat.title, user.first_name, '\n'.join(reason))
         context.job_queue.run_once(check_warned_user,
                                    config.USER_WARNED_TIME,
                                    context={
@@ -96,11 +95,11 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
                                    },
                                    name=str(user.id))
     else:
-        logger.info(
-            '''
-User is %s verified. no banned words in user details.
-user details not similar to the chat admins details.
-''', user.first_name)
+        log = (
+            "User  %s is verified. no banned words in user details.\n"
+            "user details not similar to the chat admins details.\n"
+        )
+        logger.info(log,user.first_name)
 
 
 # /start /help
@@ -239,7 +238,7 @@ def check_warned_user(context: CallbackContext):
                 context.bot.ban_chat_member(chat_id, user_id)
                 banned = True
         if banned:
-            logger.info("User is banned '%s' ", user_member.user.first_name)
+            logger.info("User is banned '%s'\n ", user_member.user.first_name)
 
 
 def delete_message(context: CallbackContext):
@@ -255,11 +254,12 @@ def reply_message(message:Message,text:str,context: CallbackContext,delete_time=
     reply = message.reply_text(text,**kwargs)
     if delete_time is not None:
         # delete the original message
-        logger.info('''
-        scheduling 2 background job
-        function = bot.handlers.delete_message
-        time = %s seconds
-        ''',delete_time)
+        log = (
+        "scheduling 2 background job\n"
+        "function = bot.handlers.delete_message\n"
+        "time = %s seconds\n"
+        )
+        logger.info(log,delete_time)
         context.job_queue.run_once(delete_message,delete_time,context=message,name=str(message.from_user.id))
 
         # delete the bot reply

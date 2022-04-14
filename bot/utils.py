@@ -66,13 +66,12 @@ def log_command(func):
         message = update.message
         command = message.text.split()[0]
         user = message.from_user
-        logger.info(
-            '''
-            Bot command %s from
-            user_id = %s
-            username = %s
-            first_name = %s
-            ''', command, user.id, user.username, user.first_name)
+        log = ( "Bot command %s from\n"
+           " user_id = %s\n"
+           " username = %s\n"
+            "first_name = %s\n"
+            )
+        logger.info(log, command, user.id, user.username, user.first_name)
         return func(update, context)
 
     return wrapper
@@ -85,14 +84,14 @@ def log_chat_member(func):
         chat = update.chat_member.chat
         user = update.chat_member.new_chat_member.user
         status = update.chat_member.new_chat_member.status
-        logger.info(
-            '''
-            New chat member status in chat %s
-            status = %s
-            user_id = %s
-            username = %s
-            first_name = %s
-            ''', chat.title, status, user.id, user.username, user.first_name)
+        log = (
+            " New chat member status in chat %s"
+            "status = %s"
+            " user_id = %s"
+            "username = %s"
+            "first_name = %s"
+        )
+        logger.info(log, chat.title, status, user.id, user.username, user.first_name)
         return func(update, context)
 
     return wrapper
@@ -116,11 +115,11 @@ def chat_admin_only(func):
         ]
         user = message.from_user
         if not user.id in admins:
-            logger.info(
-                '''
-                Ignoring command %s from %s
-                Reason: Only admin can use this command
-                ''', command, user.first_name)
+            log = (
+                "Ignoring command %s from %s in chat %s\n"
+               " Reason: Only admin can use this command\n"
+            )
+            logger.info(log, command, user.first_name,message.chat.title)
             return
         else:
             return func(update, context)
@@ -138,12 +137,11 @@ def private_only(func):
         command = message.text.split()[0]
         if chat_type == 'private':
             return func(update, context)
-
-        logger.info(
-            '''
-                Ignoring command %s from %s
-                Reason: Private chat only command
-                ''', command, user.first_name)
+        log = (
+                "Ignoring command %s from %s\n"
+               " Reason: Reason: Private chat only command\n"
+            )
+        logger.info(log, command, user.first_name)
 
     return wrapper
 
