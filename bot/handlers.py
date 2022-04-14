@@ -25,7 +25,7 @@ def my_chat_member(update: Update, context: CallbackContext):
     if status == "member":
         text = "For the bot to function in this chat, make the bot admin of this chat"
         # the return message instance is not needed here
-        _ = post_message(chat_member.chat.id,text,context,delete_time=config.DELETE_MESSAGE_LONG_TIME)
+        _ = post_message(chat_member.chat.id,text,context,delete_time=config.DELETE_MESSAGE_SHORT_TIME)
     elif status == 'administrator':
         logger.info("Bot is now admin in the chat %s", chat_member.chat.title)
 
