@@ -25,7 +25,7 @@ def my_chat_member(update: Update, context: CallbackContext):
     if status == "member":
         text = "For the bot to function in this chat, make the bot admin of this chat"
         # the return message instance is not needed here
-        _ = post_message(chat_member.chat.id,text,context,delete_time=config.DELETE_MESSAGE_SHORT_TIME)
+        post_message(chat_member.chat.id,text,context,delete_time=config.DELETE_MESSAGE_SHORT_TIME)
     elif status == 'administrator':
         logger.info("Bot is now admin in the chat %s", chat_member.chat.title)
 
@@ -66,7 +66,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
                               first_name=first_name,
                               last_name=last_name,
                               similar_name=similar_name)
-        _ = post_message(chat_member.chat.id,text,context,delete_time=config.USER_WARNED_TIME,parse_mode="HTML")
+        post_message(chat_member.chat.id,text,context,delete_time=config.USER_WARNED_TIME,parse_mode="HTML")
 
     # check for banned words
     for details in (first_name, last_name, username):
@@ -77,7 +77,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
             text = BANNED_WORDS_MESSAGE.format(user=name,
                                                name=details,
                                                word=word)
-            _ = post_message(chat_member.chat.id,text,context,delete_time=config.USER_WARNED_TIME,parse_mode="HTML")
+            post_message(chat_member.chat.id,text,context,delete_time=config.USER_WARNED_TIME,parse_mode="HTML")
             break
 
     if warned:
