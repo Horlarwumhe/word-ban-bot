@@ -2,7 +2,9 @@
 Documentation for configuration values used by the bot
 This should be in config.json file in the root folder. see [config.json.tmpl](config.json.tmpl)
 
-BOT_TOKEN os.environ.get("BOT_TOKEN")
+BOT_TOKEN
+bot token 
+this cam also be put in the environment
 
 DATABASE_NAME
 name of the bot database. 'botdata.db'
