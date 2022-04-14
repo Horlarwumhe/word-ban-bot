@@ -9,8 +9,7 @@ path = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0,path)
 
 from bot.db import add_banned_word,get_banned_words_list,remove_banned_word,init_db
-from bot import config
-
+from bot.config import config
 db_name = 'bot_test_data.db'
 config.DATABASE_NAME = db_name
 
