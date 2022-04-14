@@ -15,6 +15,8 @@ from bot.config import config
 
 logger = logging.getLogger('bot')
 
+def exception_handler(update: Update,context: CallbackContext):
+    logger.exception(context.error or "Error")
 
 def my_chat_member(update: Update, context: CallbackContext):
     chat_member = update.my_chat_member

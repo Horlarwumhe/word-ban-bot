@@ -37,7 +37,7 @@ def main():
     dispatcher.add_handler(
         ChatMemberHandler(handlers.new_chat_member,
                           ChatMemberHandler.CHAT_MEMBER))
-
+    dispatcher.add_error_handler(handlers.exception_handler)
     # Start the Bot
     updater.start_polling(
         allowed_updates=['my_chat_member', 'chat_member', 'message'])
