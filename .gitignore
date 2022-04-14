@@ -1,3 +1,6 @@
 __pycache__
 *.db
 todo.md
+
+*.service
+config.json
