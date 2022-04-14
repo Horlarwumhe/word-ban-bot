@@ -48,7 +48,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     if username:
         name = "@{}".format(username)
     else:
-        name = '''<a href='tg://user?id={id}'> {first_name} </a>'''.format(
+        name = '<a href="tg://user?id={id}"> {first_name} </a>'.format(
             id=user.id, first_name=user.first_name)
     admin_names = list_admin_names(context.bot, chat_member.chat.id)
     similar_name = check_admin_names(admin_names, first_name)
@@ -151,12 +151,12 @@ def add_word(update: Update, context: CallbackContext):
             c += 1
         if c == 1:
             # one word added
-            text = (f'{word} added to the list')
+            text = f'{word} added to the list'
         elif c > 1:
             # more than one
-            text = (f"New {c} words added to the list")
+            text = f"New {c} words added to the list"
         else:
-            text = (f"{word} already exist")
+            text = f"{word} already exist"
         reply_message(message,text,context,delete_time=delete_time)
 
 
