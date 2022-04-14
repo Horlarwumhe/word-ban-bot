@@ -85,11 +85,11 @@ def log_chat_member(func):
         user = update.chat_member.new_chat_member.user
         status = update.chat_member.new_chat_member.status
         log = (
-            " New chat member status in chat %s"
-            "status = %s"
-            " user_id = %s"
-            "username = %s"
-            "first_name = %s"
+            " New chat member status in chat %s\n"
+            "status = %s\n"
+            " user_id = %s\n"
+            "username = %s\n"
+            "first_name = %s\n"
         )
         logger.info(log, chat.title, status, user.id, user.username, user.first_name)
         return func(update, context)
