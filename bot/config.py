@@ -1,18 +1,27 @@
-import os
+import json
 
-# BOT_TOKEN should not be put here.
-# Put it in environment
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-DATABASE_NAME = 'botdata.db'
+class Config(dict):
 
-# time user is warned before being
-USER_WARNED_TIME = 60 * 5 
+    def __init__(self,data=None):
+        if data is None:
+            data = {}
+        super().__init__(data)
 
-# time to delete bot commands and bot messages
-DELETE_MESSAGE_TIME = 60 * 1 
+    def load(self):
+        with open('config.json','r') as f:
+            data = json.load(f)
+        return data
+    def get(self,key,default=None):
+        data = self.load()
+        return data.get(key,default)
 
-# time to delete bot commands and bot messages, but longer than DELETE_MESSAGE_TIME
-DELETE_MESSAGE_LONG_TIME = 60 * 10
+    def __getitem__(self, key):
+        data = self.load()
+        return data[key]
 
-# time to delete bot commands and bot messages, but shorter than DELETE_MESSAGE_LONG_TIME
-DELETE_MESSAGE_SHORT_TIME = 60 * 5 
+    def __getattr__(self,key):
+        data = self.load()
+        return data[key]
+
+config = Config()
+    

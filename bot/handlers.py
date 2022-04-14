@@ -11,7 +11,7 @@ from bot.utils import (BANNED_WORDS_MESSAGE, chat_admin_only,
                        check_banned_words, check_admin_names, list_admin_names,
                        log_chat_member, log_command, sanitize_word,
                        special_command)
-from bot import config
+from bot.config import config
 
 logger = logging.getLogger('bot')
 

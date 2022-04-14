@@ -1,5 +1,5 @@
 import sqlite3 as sqlite
-from bot import config
+from bot.config import config
 
 
 class DB:

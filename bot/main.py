@@ -5,6 +5,7 @@ from telegram.ext import (CallbackContext, ChatMemberHandler, CommandHandler,
                           Updater)
 
 import bot.handlers as handlers
+from bot.config import config
 from bot.db import init_db
 
 logger = logging.getLogger('bot')
@@ -12,6 +13,8 @@ logger = logging.getLogger('bot')
 
 def main():
     token = os.environ.get("BOT_TOKEN")
+    if not token:
+        token = config.BOT_TOKEN
     if not token:
         logger.info("BOT_TOKEN token not set\nexisting....")
         exit(1)
