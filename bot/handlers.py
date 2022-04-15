@@ -192,7 +192,7 @@ def check_user_details(chat:Chat,users,context:CallbackContext):
 
     if not isinstance(users,list):
         users = [users]
-    # warned = False
+    warned = False
     chat_id = chat.id
     admin_names = list_admin_names(context.bot, chat_id)
     for user in users:
