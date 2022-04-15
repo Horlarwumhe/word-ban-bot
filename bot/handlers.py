@@ -7,11 +7,12 @@ from telegram.ext import CallbackContext
 from telegram.message import Message
 
 from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
-from bot.utils import (BANNED_WORDS_MESSAGE, chat_admin_only,
+from bot.utils import (chat_admin_only,
                        check_banned_words, check_admin_names, list_admin_names,
                        log_chat_member, log_command, sanitize_word,
                        special_command)
 from bot.config import config
+import bot.messages as M
 
 logger = logging.getLogger('bot')
 
@@ -48,26 +49,19 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     # bot = context.bot.send_message(message,chat_id=chat_member.chat.id)
 
     if username:
-        name = "@{}".format(username)
+        mention = "@{}".format(username)
     else:
-        name = '<a href="tg://user?id={id}"> {first_name} </a>'.format(
+        mention = '<a href="tg://user?id={id}"> {first_name} </a>'.format(
             id=user.id, first_name=user.first_name)
     admin_names = list_admin_names(context.bot, chat_member.chat.id)
     similar_name = check_admin_names(admin_names, first_name)
     if not similar_name:
         similar_name = check_admin_names(admin_names, last_name)
+    warning_time = str(config.USER_WARNED_TIME//60)
     if similar_name:
         reason.append("user name similar to chat admins name")
         warned = True
-        text = (
-            'Hello {user}, Your first name/last name {first_name}-{last_name}\n'
-            'is similar to one of the admins of this chat, <b>{similar_name}</b>\n'
-            "kindly change the name to something else.\n"
-            "You will be removed after 5 mins if you dont change your name")
-        text = text.format(user=name,
-                              first_name=first_name,
-                              last_name=last_name,
-                              similar_name=similar_name)
+        text = M.SIMILAR_NAME_MESSAGE.format(user=mention,admin=similar_name,time=warning_time)
         post_message(chat_member.chat.id,text,context,delete_time=config.USER_WARNED_TIME,parse_mode="HTML")
 
     # check for banned words
@@ -76,8 +70,8 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
         if word:
             reason.append("user name in banned word list")
             warned = True
-            text = BANNED_WORDS_MESSAGE.format(user=name,
-                                               name=details,
+            text = M.BANNED_WORDS_MESSAGE.format(user=mention,
+                                               time=warning_time,
                                                word=word)
             post_message(chat_member.chat.id,text,context,delete_time=config.USER_WARNED_TIME,parse_mode="HTML")
             break
@@ -111,10 +105,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
 @chat_admin_only
 def start(update: Update, context: CallbackContext):
     message = update.message
-    text = """/add <word> to add new word
-/remove <word> to remove word
-/list to list all banned words
-    """
+    text = M.COMMAND_START_MESSAGE
     if message.chat.type == 'private':
         delete_time = None
     else:
@@ -139,7 +130,7 @@ def add_word(update: Update, context: CallbackContext):
     try:
         word = args[0]
     except IndexError:
-        text = 'Add new word\nUsage: /add <word>'
+        text = M.ADD_WORD_USAGE
         reply_message(message,text,context,delete_time=delete_time)
     else:
         banned_words = get_banned_words_list(chat_id)
@@ -153,12 +144,13 @@ def add_word(update: Update, context: CallbackContext):
             c += 1
         if c == 1:
             # one word added
-            text = f'{word} added to the list'
+            text = M.WORD_ADDED_MESSAGE.format(word=word)
         elif c > 1:
             # more than one
-            text = f"New {c} words added to the list"
+            text = M.BANNED_WORDS_MESSAGE.format(word="New %s words "%c)
+            # text = f"New {c} words added to the list"
         else:
-            text = f"{word} already exist"
+            text = M.WORD_EXISTS_MESSAGE.format(word=word)
         reply_message(message,text,context,delete_time=delete_time)
 
 
@@ -179,15 +171,15 @@ def remove_word(update: Update, context: CallbackContext):
     try:
         word = args[0]
     except IndexError:
-        text = 'Remove word\nUsage: /remove <word>'
+        text = M.REMOVE_WORD_USAGE
     else:
         words = map(sanitize_word, args)
         c = 0
         for word in words:
             remove_banned_word(chat_id, word)
             c += 1
-        text = "{} removed from the list".format(word if c ==
-                                                 1 else f"{c} words")
+        word = word if c == 1 else f"New {c} words"
+        text = M.WORD_REMOVED_MESSAGE.format(word=word)
     reply_message(message,text,context,delete_time=delete_time)
 
 

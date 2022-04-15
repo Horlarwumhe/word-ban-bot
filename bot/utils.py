@@ -6,6 +6,7 @@ from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
 from bot.db import get_banned_words_list
+import bot.messages as M
 
 logger = logging.getLogger('bot')
 BANNED_WORDS_MESSAGE = (
@@ -85,9 +86,9 @@ def log_chat_member(func):
         user = update.chat_member.new_chat_member.user
         status = update.chat_member.new_chat_member.status
         log = (
-            " New chat member status in chat %s\n"
+            "New chat member status in chat %s\n"
             "status = %s\n"
-            " user_id = %s\n"
+            "user_id = %s\n"
             "username = %s\n"
             "first_name = %s\n"
         )
@@ -179,9 +180,7 @@ def special_command(func):
                         % arg)
                     return
             else:
-                message.reply_text(
-                    'To use this command in private chat\nspecify target chat @<chatname>'
-                )
+                message.reply_text(M.COMMAND_START_MESSAGE)
                 return
 
         return func(update, context)
