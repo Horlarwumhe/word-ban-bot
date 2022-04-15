@@ -20,6 +20,9 @@ except ImportError:
 
 
 def main():
+    def notify(_):
+        systemd.daemon.notify("READY=1")
+
     token = os.environ.get("BOT_TOKEN")
     if not token:
         token = config.BOT_TOKEN
@@ -54,5 +57,5 @@ def main():
     # SIGABRT. This should be used most of the time, since start_polling() is
     # non-blocking and will stop the bot gracefully.
     if have_systemd:
-        systemd.daemon.notify("READY=1")
+        updater.job_queue.run_once(notify,2)
     updater.idle()
