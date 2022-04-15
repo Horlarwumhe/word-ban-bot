@@ -9,6 +9,14 @@ from bot.config import config
 from bot.db import init_db
 
 logger = logging.getLogger('bot')
+try:
+    import systemd.daemon
+    have_systemd = True
+except ImportError:
+    have_systemd = False
+    logger.info("systemd not available")
+
+
 
 
 def main():
@@ -45,4 +53,6 @@ def main():
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
     # SIGABRT. This should be used most of the time, since start_polling() is
     # non-blocking and will stop the bot gracefully.
+    if have_systemd:
+        systemd.daemon.notify("READY=1")
     updater.idle()
