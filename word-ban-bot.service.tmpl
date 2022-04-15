@@ -19,7 +19,7 @@ ExecStart=/usr/bin/bash word-ban-bot/daemon.sh
 Restart=on-failure
 
 # Our service will notify systemd once it is up and running
-Type=simple
+Type=notify
 
 # Restart seconds if the process failed
 RestartSec=1
