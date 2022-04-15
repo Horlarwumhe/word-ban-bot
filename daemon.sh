@@ -1,3 +1,5 @@
+#! /usr/bin/bash
+
 export PYTHONUNBUFFERED=1
 export BOT_TOKEN=""
 cd $HOME/word-ban-bot

@@ -1,4 +1,4 @@
-
+#! /usr/bin/bash
 
 DAEMON_DIR=$HOME/.config/systemd/user.control
 # create directory for user systemd files
