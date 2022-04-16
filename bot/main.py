@@ -42,6 +42,7 @@ def main():
     dispatcher.add_handler(CommandHandler("list", handlers.list_word))
     dispatcher.add_handler(CommandHandler("add", handlers.add_word))
     dispatcher.add_handler(CommandHandler("remove", handlers.remove_word))
+    dispatcher.add_handler(CommandHandler("init", handlers.init_scan_members))
     dispatcher.add_handler(
         ChatMemberHandler(handlers.my_chat_member,
                           ChatMemberHandler.MY_CHAT_MEMBER))

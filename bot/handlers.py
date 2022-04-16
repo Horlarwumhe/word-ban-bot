@@ -15,6 +15,7 @@ from bot.utils import (chat_admin_only, check_banned_words, check_admin_names,
                        sanitize_word, special_command)
 from bot.config import config
 import bot.messages as M
+import bot.db as db
 
 logger = logging.getLogger('bot')
 
@@ -48,7 +49,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     # chat_id = chat_member.chat.id
     if status != 'member':
         return
-    # add_member(chat_id,user.id)
+    db.add_chat_member(chat_member.chat.id,chat_member.new_chat_member.user.id)
     check_user_details(chat_member.chat,chat_member.new_chat_member.user,context)
     
 
@@ -155,6 +156,21 @@ def list_word(update: Update, context: CallbackContext):
     reply_message(message, words, context, delete_time=delete_time)
 
 
+
+@log_command
+@chat_admin_only
+@special_command
+def init_scan_members(update:Update,context:CallbackContext):
+    chat_id = update.message.chat_id
+    started = context.chat_data.get("scan.started")
+    if started:
+        logger.info("scannig members already started ")
+    else:
+        context.job_queue.run_repeating(scan_chat_members,15,context={"chat_id":chat_id})
+    reply_message(update.message,"started....",context,delete_time=3)
+    context.chat_data["scan.started"] = True
+    logger.info("starting background members check")
+
 def check_warned_user(context: CallbackContext):
     user_id = context.job.context['user_id']
     chat_id = context.job.context['chat_id']
@@ -254,6 +270,27 @@ def check_user_details(chat:Chat,users,context:CallbackContext):
                 "user details not similar to the chat admins details.\n")
             logger.info(log, user.first_name)
 
+def scan_chat_members(context:CallbackContext):
+    # background job
+    # time at 10 mins interval
+    MAX_FETCH = 100
+    chat_id = context.job.context['chat_id']
+    chat = context.bot.get_chat(chat_id)
+    time_frame = 60 * 10
+    users_id =[ user['user_id'] for user in db.get_chat_members_by_last_check(chat_id,MAX_FETCH,time_frame)]
+    users  = []
+    print("found %s users in the data base checking them"%len(users_id))
+    for user_id in users_id:
+        member = context.bot.get_chat_member(chat_id,user_id)
+        db.update_chat_member_last_check(chat_id,user_id)
+        if member.status in ['left','kicked']:
+            # user has left
+            db.remove_chat_member(chat_id,user_id)
+        elif member.status == "administrator":
+            continue
+        else:
+            users.append(member.user)
+    check_user_details(chat,users,context)
 
 def delete_message(context: CallbackContext):
     # delete a message after some minutes
