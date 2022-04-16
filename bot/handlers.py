@@ -1,7 +1,4 @@
 import logging
-import os
-import sqlite3 as sqlite
-import time
 
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -9,7 +6,7 @@ from telegram.message import Message
 from telegram.chatmember import ChatMember
 from telegram.chat import Chat
 
-from bot.db import (add_banned_word, get_banned_words_list, get_chat_members, remove_banned_word, remove_chat_member)
+from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
 from bot.utils import (chat_admin_only, check_banned_words, check_admin_names,
                        list_admin_names, log_chat_member, log_command,
                        sanitize_word, special_command)
@@ -142,7 +139,6 @@ def remove_word(update: Update, context: CallbackContext):
 @special_command
 def list_word(update: Update, context: CallbackContext):
     message = update.message
-    user_id = message.from_user.id
     args = context.args
     if message.chat.type == 'private':
         chat_link = args.pop()
@@ -164,7 +160,7 @@ def init_scan_members(update:Update,context:CallbackContext):
     chat_id = update.message.chat_id
     started = context.chat_data.get("scan.started")
     if started:
-        logger.info("scannig members already started ")
+        logger.info("scanning members already started ")
     else:
         context.job_queue.run_repeating(scan_chat_members,15,context={"chat_id":chat_id})
     reply_message(update.message,"started....",context,delete_time=3)
@@ -271,15 +267,15 @@ def check_user_details(chat:Chat,users,context:CallbackContext):
             logger.info(log, user.first_name)
 
 def scan_chat_members(context:CallbackContext):
-    # background job
-    # time at 10 mins interval
+    # background job called at 15 seconds interval
     MAX_FETCH = 100
     chat_id = context.job.context['chat_id']
     chat = context.bot.get_chat(chat_id)
+    # return users that have not been checked in the last {time_frame} minutes
     time_frame = 60 * 10
     users_id =[ user['user_id'] for user in db.get_chat_members_by_last_check(chat_id,MAX_FETCH,time_frame)]
     users  = []
-    print("found %s users in the data base checking them"%len(users_id))
+    logger.info("%s users have not been checked in the last %s minutes",len(users_id),time_frame//60)
     for user_id in users_id:
         member = context.bot.get_chat_member(chat_id,user_id)
         db.update_chat_member_last_check(chat_id,user_id)
