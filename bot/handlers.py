@@ -138,7 +138,6 @@ def remove_word(update: Update, context: CallbackContext):
 
 #/list
 @log_command
-@chat_admin_only
 @special_command
 def list_word(update: Update, context: CallbackContext):
     message = update.message
