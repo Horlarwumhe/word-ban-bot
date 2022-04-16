@@ -21,8 +21,6 @@ def check_banned_words(name, chat_id):
     found = None
     if not name:
         return
-    logger.info("Checking for user name '%s' in the chat banned word list",
-                name)
     name = ''.join(filter(str.isalpha, name)).lower()
     banned_words = get_banned_words_list(chat_id)
     for word in banned_words:
@@ -36,9 +34,6 @@ def check_admin_names(admin_names, name):
     # remove no alphabetic character ,eg, _
     if not name:
         return
-    logger.info(
-        "Checking for similarity between user name '%s' and names of the admins",
-        name)
     username = ''.join(filter(str.isalpha, name)).lower()
     for admin in admin_names:
         try:
