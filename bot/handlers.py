@@ -172,7 +172,7 @@ def check_warned_user(context: CallbackContext):
     chat_id = context.job.context['chat_id']
 
     user_member = context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
-    if user_member and user_member.status != "member":
+    if user_member and user_member.status not in ["member", "restricted" ]:
         # The user is no more member
         return
     banned = False
