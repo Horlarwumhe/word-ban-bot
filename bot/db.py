@@ -73,51 +73,48 @@ def get_banned_word(chat_id, word):
     return
 
 
-
-def add_chat_member(chat_id,user_id):
-    if get_chat_member(chat_id,user_id):
+def add_chat_member(chat_id, user_id):
+    if get_chat_member(chat_id, user_id):
         return
     with DB() as db:
-        db.execute(
-            "insert into members(chat_id,user_id) values(?,?)",(chat_id,user_id))
+        db.execute("insert into members(chat_id,user_id) values(?,?)",
+                   (chat_id, user_id))
 
-def get_chat_member(chat_id,user_id):
-     with DB() as db:
-        row = db.execute(
-            "select * from members where chat_id=? and user_id=?",(chat_id,user_id)).fetchone()
+
+def get_chat_member(chat_id, user_id):
+    with DB() as db:
+        row = db.execute("select * from members where chat_id=? and user_id=?",
+                         (chat_id, user_id)).fetchone()
         if row:
             return row["chat_id"]
 
+
 def get_chat_members(chat_id):
     with DB() as db:
-        rows = db.execute(
-           "select * from members where chat_id=?",(chat_id,)).fetchall()
+        rows = db.execute("select * from members where chat_id=?",
+                          (chat_id, )).fetchall()
     return rows
 
-def remove_chat_member(chat_id,user_id):
+
+def remove_chat_member(chat_id, user_id):
     with DB() as db:
         db.execute("delete from members where chat_id=? and user_id=?;",
-                   (chat_id,user_id))
+                   (chat_id, user_id))
 
 
-
-def get_chat_members_by_last_check(chat_id,limit=1000,time_frame=60*5):
+def get_chat_members_by_last_check(chat_id, limit=1000, time_frame=60 * 5):
     time_frame = int(time_frame)
     # select users with lowest last check limit by N limit
     with DB() as db:
         now = int(time.time())
-        sql = (
-            "select * from members where chat_id=? "
-            "and ? - last_checked >= ? "
-            "order by last_checked limit ?;"
-        )
-        rows = db.execute(sql
-            ,(chat_id,now,time_frame,limit)
-        ).fetchall()
+        sql = ("select * from members where chat_id=? "
+               "and ? - last_checked >= ? "
+               "order by last_checked limit ?;")
+        rows = db.execute(sql, (chat_id, now, time_frame, limit)).fetchall()
     return rows
 
 
-def update_chat_member_last_check(chat_id,user_id,last_check=None):
+def update_chat_member_last_check(chat_id, user_id, last_check=None):
     if not last_check:
         now = int(time.time())
     else:
@@ -125,8 +122,8 @@ def update_chat_member_last_check(chat_id,user_id,last_check=None):
 
     with DB() as db:
         db.execute(
-            "update  members set last_checked=? where chat_id=? and user_id=?",(now,chat_id,user_id)
-        )
+            "update  members set last_checked=? where chat_id=? and user_id=?",
+            (now, chat_id, user_id))
 
 
 # def select_chat_members(chat_id):

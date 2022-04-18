@@ -46,9 +46,10 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     # chat_id = chat_member.chat.id
     if status != 'member':
         return
-    db.add_chat_member(chat_member.chat.id,chat_member.new_chat_member.user.id)
-    check_user_details(chat_member.chat,chat_member.new_chat_member.user,context)
-    
+    db.add_chat_member(chat_member.chat.id,
+                       chat_member.new_chat_member.user.id)
+    check_user_details(chat_member.chat, chat_member.new_chat_member.user,
+                       context)
 
 
 # /start /help
@@ -106,6 +107,7 @@ def add_word(update: Update, context: CallbackContext):
 
 
 #/remove <word>
+
 @log_command
 @chat_admin_only
 @special_command
@@ -152,27 +154,29 @@ def list_word(update: Update, context: CallbackContext):
     reply_message(message, words, context, delete_time=delete_time)
 
 
-
 @log_command
 @chat_admin_only
 @special_command
-def init_scan_members(update:Update,context:CallbackContext):
+def init_scan_members(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
     started = context.chat_data.get("scan.started")
     if started:
         logger.info("scanning members already started ")
     else:
-        context.job_queue.run_repeating(scan_chat_members,15,context={"chat_id":chat_id})
-    reply_message(update.message,"started....",context,delete_time=3)
+        context.job_queue.run_repeating(scan_chat_members,
+                                        15,
+                                        context={"chat_id": chat_id})
+    reply_message(update.message, "started....", context, delete_time=3)
     context.chat_data["scan.started"] = True
     logger.info("starting background members check")
+
 
 def check_warned_user(context: CallbackContext):
     user_id = context.job.context['user_id']
     chat_id = context.job.context['chat_id']
 
     user_member = context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
-    if user_member and user_member.status not in ["member", "restricted" ]:
+    if user_member and user_member.status not in ["member", "restricted"]:
         # The user is no more member
         return
     banned = False
@@ -199,9 +203,9 @@ def check_warned_user(context: CallbackContext):
             logger.info("User is banned '%s'\n ", user_member.user.first_name)
 
 
-def check_user_details(chat:Chat,users,context:CallbackContext):
+def check_user_details(chat: Chat, users, context: CallbackContext):
 
-    if not isinstance(users,list):
+    if not isinstance(users, list):
         users = [users]
     warned = False
     chat_id = chat.id
@@ -224,13 +228,13 @@ def check_user_details(chat:Chat,users,context:CallbackContext):
             reason.append("user name similar to chat admins name")
             warned = True
             text = M.SIMILAR_NAME_MESSAGE.format(user=mention,
-                                                admin=similar_name,
-                                                time=warning_time)
+                                                 admin=similar_name,
+                                                 time=warning_time)
             post_message(chat_id,
-                        text,
-                        context,
-                        delete_time=config.USER_WARNED_TIME,
-                        parse_mode="HTML")
+                         text,
+                         context,
+                         delete_time=config.USER_WARNED_TIME,
+                         parse_mode="HTML")
 
         # check for banned words
         for details in (first_name, last_name, username):
@@ -239,54 +243,59 @@ def check_user_details(chat:Chat,users,context:CallbackContext):
                 reason.append("user name in banned word list")
                 warned = True
                 text = M.BANNED_WORDS_MESSAGE.format(user=mention,
-                                                    time=warning_time,
-                                                    word=word)
+                                                     time=warning_time,
+                                                     word=word)
                 post_message(chat_id,
-                            text,
-                            context,
-                            delete_time=config.USER_WARNED_TIME,
-                            parse_mode="HTML")
+                             text,
+                             context,
+                             delete_time=config.USER_WARNED_TIME,
+                             parse_mode="HTML")
                 break
 
         if warned:
             log = ("User details violate the chat policy in chat %s\n"
-                "first_name = %s \n"
-                "Reason: %s\n")
-            logger.info(log, chat.title, user.first_name,
-                        '\n'.join(reason))
+                   "first_name = %s \n"
+                   "Reason: %s\n")
+            logger.info(log, chat.title, user.first_name, '\n'.join(reason))
             context.job_queue.run_once(check_warned_user,
-                                    config.USER_WARNED_TIME,
-                                    context={
-                                        "chat_id": chat_id,
-                                        'user_id': user.id
-                                    },
-                                    name=str(user.id))
+                                       config.USER_WARNED_TIME,
+                                       context={
+                                           "chat_id": chat_id,
+                                           'user_id': user.id
+                                       },
+                                       name=str(user.id))
         else:
             log = ("User %s is verified. no banned words in user details.\n"
-                "user details not similar to the chat admins details.\n")
+                   "user details not similar to the chat admins details.\n")
             logger.info(log, user.first_name)
 
-def scan_chat_members(context:CallbackContext):
+
+def scan_chat_members(context: CallbackContext):
     # background job called at 15 seconds interval
     MAX_FETCH = 100
     chat_id = context.job.context['chat_id']
     chat = context.bot.get_chat(chat_id)
     # return users that have not been checked in the last {time_frame} minutes
     time_frame = 60 * 10
-    users_id =[ user['user_id'] for user in db.get_chat_members_by_last_check(chat_id,MAX_FETCH,time_frame)]
-    users  = []
-    logger.info("%s users have not been checked in the last %s minutes",len(users_id),time_frame//60)
+    users_id = [
+        user['user_id'] for user in db.get_chat_members_by_last_check(
+            chat_id, MAX_FETCH, time_frame)
+    ]
+    users = []
+    logger.info("%s users have not been checked in the last %s minutes",
+                len(users_id), time_frame // 60)
     for user_id in users_id:
-        member = context.bot.get_chat_member(chat_id,user_id)
-        db.update_chat_member_last_check(chat_id,user_id)
-        if member.status in ['left','kicked']:
+        member = context.bot.get_chat_member(chat_id, user_id)
+        db.update_chat_member_last_check(chat_id, user_id)
+        if member.status in ['left', 'kicked']:
             # user has left
-            db.remove_chat_member(chat_id,user_id)
+            db.remove_chat_member(chat_id, user_id)
         elif member.status == "administrator":
             continue
         else:
             users.append(member.user)
-    check_user_details(chat,users,context)
+    check_user_details(chat, users, context)
+
 
 def delete_message(context: CallbackContext):
     # delete a message after some minutes
