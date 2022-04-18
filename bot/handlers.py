@@ -44,12 +44,13 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     # user = chat_member.new_chat_member.user
     status = chat_member.new_chat_member.status
     # chat_id = chat_member.chat.id
-    if status != 'member':
+    if status in ['left','kicked']:
+        db.remove_chat_member(chat_member.chat.id,chat_member.new_chat_member.user.id)
         return
     db.add_chat_member(chat_member.chat.id,
-                       chat_member.new_chat_member.user.id)
+                        chat_member.new_chat_member.user.id)
     check_user_details(chat_member.chat, chat_member.new_chat_member.user,
-                       context)
+                        context)
 
 
 
@@ -303,7 +304,6 @@ def scan_chat_members(context: CallbackContext):
         member = context.bot.get_chat_member(chat_id, user_id)
         db.update_chat_member_last_check(chat_id, user_id)
         if member.status in ['left', 'kicked']:
-            # user has left
             db.remove_chat_member(chat_id, user_id)
         elif member.status in ["administrator","creator"]:
             continue
