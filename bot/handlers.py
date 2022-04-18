@@ -52,6 +52,20 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
                        context)
 
 
+
+def chat_member_message(update:Update,context:CallbackContext):
+    # called when member send message to the chat
+    # the user is added to the database
+    chat_id = update.message.chat_id
+    user_id = update.message.from_user.id
+    ret = db.add_chat_member(chat_id,user_id)
+    print(update.message.from_user.first_name,update.message.text)
+    if ret:
+        logger.info("New member added to database %s",update.message.from_user.first_name)
+    # else:
+    #     logger.info("user alreday in database")
+
+
 # /start /help
 @log_command
 @chat_admin_only
@@ -285,16 +299,18 @@ def scan_chat_members(context: CallbackContext):
     logger.info("%s users have not been checked in the last %s minutes",
                 len(users_id), time_frame // 60)
     for user_id in users_id:
+        
         member = context.bot.get_chat_member(chat_id, user_id)
         db.update_chat_member_last_check(chat_id, user_id)
         if member.status in ['left', 'kicked']:
             # user has left
             db.remove_chat_member(chat_id, user_id)
-        elif member.status == "administrator":
+        elif member.status in ["administrator","creator"]:
             continue
         else:
             users.append(member.user)
-    check_user_details(chat, users, context)
+    if users:
+        check_user_details(chat, users, context)
 
 
 def delete_message(context: CallbackContext):

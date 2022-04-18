@@ -2,11 +2,11 @@ import logging
 import os
 
 from telegram.ext import (CallbackContext, ChatMemberHandler, CommandHandler,
-                          Updater)
+                          Updater,MessageHandler,Filters)
 
 import bot.handlers as handlers
 from bot.config import config
-from bot.db import init_db
+from bot.db import add_chat_member, init_db
 
 logger = logging.getLogger('bot')
 try:
@@ -50,6 +50,7 @@ def main():
         ChatMemberHandler(handlers.new_chat_member,
                           ChatMemberHandler.CHAT_MEMBER))
     dispatcher.add_error_handler(handlers.exception_handler)
+    dispatcher.add_handler(MessageHandler(Filters.all & (~ Filters.chat_type.private),handlers.chat_member_message))
     # Start the Bot
     updater.start_polling(
         allowed_updates=['my_chat_member', 'chat_member', 'message'])

@@ -75,10 +75,11 @@ def get_banned_word(chat_id, word):
 
 def add_chat_member(chat_id, user_id):
     if get_chat_member(chat_id, user_id):
-        return
+        return False
     with DB() as db:
         db.execute("insert into members(chat_id,user_id) values(?,?)",
                    (chat_id, user_id))
+    return True
 
 
 def get_chat_member(chat_id, user_id):

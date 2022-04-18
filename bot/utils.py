@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from bot.db import get_banned_words_list
+from bot.db import get_banned_words_list,add_chat_member
 import bot.messages as M
 
 logger = logging.getLogger('bot')
@@ -56,7 +56,6 @@ def list_admin_names(bot, chat_id):
 
 # decorators
 def log_command(func):
-
     @functools.wraps(func)
     def wrapper(update: Update, context: CallbackContext):
         message = update.message
@@ -67,6 +66,7 @@ def log_command(func):
                " username = %s\n"
                "first_name = %s\n")
         logger.info(log, command, user.id, user.username, user.first_name)
+        add_chat_member(message.chat_id,user.id)
         return func(update, context)
 
     return wrapper
