@@ -109,7 +109,7 @@ def get_chat_members_by_last_check(chat_id,limit=1000,time_frame=60*5):
         sql = (
             "select * from members where chat_id=? "
             "and ? - last_checked >= ? "
-            "order by id limit ?;"
+            "order by last_checked limit ?;"
         )
         rows = db.execute(sql
             ,(chat_id,now,time_frame,limit)
