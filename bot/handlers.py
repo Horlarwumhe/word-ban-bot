@@ -199,7 +199,7 @@ def check_warned_user(context: CallbackContext):
     if user_member:
         fname = check_banned_words(user_member.user.first_name or '', chat_id)
         lname = check_banned_words(user_member.user.last_name or '', chat_id)
-        username = check_banned_words(user_member.user.first_name or '',
+        username = check_banned_words(user_member.user.username or '',
                                       chat_id)
         if lname or fname or username:
             # user details in banned words
