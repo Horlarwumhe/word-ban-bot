@@ -16,6 +16,7 @@ import bot.db as db
 
 logger = logging.getLogger('bot')
 
+WARNED_USERS = set()
 
 def exception_handler(update: Update, context: CallbackContext):
     logger.exception(context.error or "Error")
@@ -195,7 +196,7 @@ def init_scan_members(update: Update, context: CallbackContext):
 def check_warned_user(context: CallbackContext):
     user_id = context.job.context['user_id']
     chat_id = context.job.context['chat_id']
-
+    WARNED_USERS.discard(user_id)
     user_member = context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
     if user_member and user_member.status not in ["member", "restricted"]:
         # The user is no more member
@@ -276,6 +277,7 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
                 break
 
         if warned:
+            WARNED_USERS.add(user.id)
             log = ("User details violate the chat policy in chat %s\n"
                    "first_name = %s \n"
                    "Reason: %s\n")
@@ -309,6 +311,9 @@ def scan_chat_members(context: CallbackContext):
                 len(users_id), time_frame // 60)
 
     for user_id in users_id:
+        if user_id in WARNED_USERS:
+            # user is currently being warned
+            continue
         member = context.bot.get_chat_member(chat_id, user_id)
         db.update_chat_member_last_check(chat_id, user_id)
         if member.status in ['left', 'kicked']:
