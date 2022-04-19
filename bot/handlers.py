@@ -238,6 +238,7 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
     for user in users:
         if user.id in WARNED:
             continue
+        warned = False
         WARNED.add(user.id)
         username = user.username or ''
         first_name = user.first_name or ''
