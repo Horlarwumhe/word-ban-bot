@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.message import Message
-from telegram.chatmember import ChatMember
+# from telegram.chatmember import ChatMember
 from telegram.chat import Chat
 
 from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
@@ -35,7 +35,14 @@ def my_chat_member(update: Update, context: CallbackContext):
                      context,
                      delete_time=config.DELETE_MESSAGE_SHORT_TIME)
     elif status == 'administrator':
+        db.add_new_chat(chat_member.chat.id, chat_member.chat.title)
         logger.info("Bot is now admin in the chat %s", chat_member.chat.title)
+
+    elif status in ['left', 'kicked', 'restricted']:
+        jobs = context.job_queue.get_jobs_by_name('scan.%s' %
+                                                  chat_member.chat.id)
+        for job in jobs:
+            job.schedule_removal()
 
 
 @log_chat_member
@@ -60,9 +67,12 @@ def chat_member_message(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     ret = db.add_chat_member(chat_id, user_id)
+    chat = update.message.chat.title
+    db.add_new_chat(chat_id, chat)
     if ret:
-        logger.info("New member added to database %s",
-                    update.message.from_user.first_name)
+        logger.info("New member added to database %s in chat %s",
+                    update.message.from_user.first_name, chat)
+    init_scan_members(update, context)
     # else:
     #     logger.info("user alreday in database")
 
@@ -170,21 +180,16 @@ def list_word(update: Update, context: CallbackContext):
     reply_message(message, words, context, delete_time=delete_time)
 
 
-@log_command
-@chat_admin_only
-@special_command
 def init_scan_members(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
     started = context.chat_data.get("scan.started")
-    if started:
-        logger.info("scanning members already started ")
-    else:
+    if not started:
+        logger.info("starting background members check")
         context.job_queue.run_repeating(scan_chat_members,
                                         15,
+                                        name="scan.%s" % chat_id,
                                         context={"chat_id": chat_id})
-    reply_message(update.message, "started....", context, delete_time=3)
     context.chat_data["scan.started"] = True
-    logger.info("starting background members check")
 
 
 def check_warned_user(context: CallbackContext):
@@ -199,8 +204,7 @@ def check_warned_user(context: CallbackContext):
     if user_member:
         fname = check_banned_words(user_member.user.first_name or '', chat_id)
         lname = check_banned_words(user_member.user.last_name or '', chat_id)
-        username = check_banned_words(user_member.user.username or '',
-                                      chat_id)
+        username = check_banned_words(user_member.user.username or '', chat_id)
         if lname or fname or username:
             # user details in banned words
             # user has been warned
@@ -216,7 +220,10 @@ def check_warned_user(context: CallbackContext):
                 context.bot.ban_chat_member(chat_id, user_id)
                 banned = True
         if banned:
-            logger.info("User is banned '%s'\n ", user_member.user.first_name)
+            logger.info("User '%s' is banned \n ", user_member.user.first_name)
+        else:
+            logger.info("User '%s' is not banned.",
+                        user_member.user.first_name)
 
 
 def check_user_details(chat: Chat, users, context: CallbackContext):

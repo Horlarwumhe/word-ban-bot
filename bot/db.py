@@ -43,6 +43,11 @@ def init_db():
         )
         db.execute(sql)
 
+        sql = (
+            "create table if not exists chats(id integer primary key, chat_id integer unique,title text)"
+        )
+        db.execute(sql)
+
 
 def remove_banned_word(chat_id, word):
     with DB() as db:
@@ -125,6 +130,21 @@ def update_chat_member_last_check(chat_id, user_id, last_check=None):
         db.execute(
             "update  members set last_checked=? where chat_id=? and user_id=?",
             (now, chat_id, user_id))
+
+
+def add_new_chat(chat_id, title):
+    try:
+        with DB() as db:
+            db.execute("insert into chats(chat_id,title) values(?,?)",
+                       (chat_id, title))
+    except sqlite.IntegrityError:
+        pass
+
+
+def list_chats():
+    with DB() as db:
+        chats = db.execute("select * from chats")
+    return chats
 
 
 # def select_chat_members(chat_id):
