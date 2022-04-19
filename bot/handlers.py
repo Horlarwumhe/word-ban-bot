@@ -16,7 +16,7 @@ import bot.db as db
 
 logger = logging.getLogger('bot')
 
-WARNED_USERS = set()
+WARNED_USERS = {}
 
 
 def exception_handler(update: Update, context: CallbackContext):
@@ -59,7 +59,6 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
         db.remove_chat_member(chat_member.chat.id,
                               chat_member.new_chat_member.user.id)
     elif status == "member":
-
         check_user_details(chat_member.chat, chat_member.new_chat_member.user,
                            context)
 
@@ -198,7 +197,7 @@ def init_scan_members(update: Update, context: CallbackContext):
 def check_warned_user(context: CallbackContext):
     user_id = context.job.context['user_id']
     chat_id = context.job.context['chat_id']
-    WARNED_USERS.discard(user_id)
+    WARNED_USERS.get(chat_id, set()).discard(user_id)
     user_member = context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
     if user_member and user_member.status not in ["member", "restricted"]:
         # The user is no more member
@@ -230,16 +229,16 @@ def check_warned_user(context: CallbackContext):
 
 
 def check_user_details(chat: Chat, users, context: CallbackContext):
-
     if not isinstance(users, list):
         users = [users]
     warned = False
     chat_id = chat.id
     admin_names = list_admin_names(context.bot, chat_id)
+    WARNED = WARNED_USERS.setdefault(chat_id, set())
     for user in users:
-        if user.id in WARNED_USERS:
+        if user.id in WARNED:
             continue
-        WARNED_USERS.add(user.id)
+        WARNED.add(user.id)
         username = user.username or ''
         first_name = user.first_name or ''
         last_name = user.last_name or ''
@@ -294,7 +293,7 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
                                        },
                                        name=str(user.id))
         else:
-            WARNED_USERS.discard(user.id)
+            WARNED.discard(user.id)
             log = ("User %s is verified. no banned words in user details.\n"
                    "user details not similar to the chat admins details.\n")
             logger.info(log, user.first_name)
