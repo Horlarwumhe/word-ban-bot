@@ -2,11 +2,11 @@ import logging
 import os
 
 from telegram.ext import (CallbackContext, ChatMemberHandler, CommandHandler,
-                          Updater,MessageHandler,Filters)
+                          Updater, MessageHandler, Filters)
 
 import bot.handlers as handlers
 from bot.config import config
-from bot.db import add_chat_member, init_db
+from bot.db import init_db
 
 logger = logging.getLogger('bot')
 try:
@@ -17,12 +17,10 @@ except ImportError:
     logger.info("systemd not available")
 
 
-
-
 def main():
+
     def notify(_):
         systemd.daemon.notify("READY=1")
-
     token = os.environ.get("BOT_TOKEN")
     if not token:
         token = config.BOT_TOKEN
@@ -42,7 +40,7 @@ def main():
     dispatcher.add_handler(CommandHandler("list", handlers.list_word))
     dispatcher.add_handler(CommandHandler("add", handlers.add_word))
     dispatcher.add_handler(CommandHandler("remove", handlers.remove_word))
-    dispatcher.add_handler(CommandHandler("init", handlers.init_scan_members))
+    # dispatcher.add_handler(CommandHandler("init", handlers.init_scan_members))
     dispatcher.add_handler(
         ChatMemberHandler(handlers.my_chat_member,
                           ChatMemberHandler.MY_CHAT_MEMBER))
@@ -50,7 +48,9 @@ def main():
         ChatMemberHandler(handlers.new_chat_member,
                           ChatMemberHandler.CHAT_MEMBER))
     dispatcher.add_error_handler(handlers.exception_handler)
-    dispatcher.add_handler(MessageHandler(Filters.all & (~ Filters.chat_type.private),handlers.chat_member_message))
+    dispatcher.add_handler(
+        MessageHandler(Filters.text & (~Filters.chat_type.private),
+                       handlers.chat_member_message))
     # Start the Bot
     updater.start_polling(
         allowed_updates=['my_chat_member', 'chat_member', 'message'])
@@ -58,6 +58,8 @@ def main():
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
     # SIGABRT. This should be used most of the time, since start_polling() is
     # non-blocking and will stop the bot gracefully.
+    # start_scan_members()
     if have_systemd:
-        updater.job_queue.run_once(notify,2)
+        updater.job_queue.run_once(notify, 2)
+
     updater.idle()
