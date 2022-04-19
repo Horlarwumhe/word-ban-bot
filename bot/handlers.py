@@ -59,6 +59,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
         db.remove_chat_member(chat_member.chat.id,
                               chat_member.new_chat_member.user.id)
     elif status == "member":
+
         check_user_details(chat_member.chat, chat_member.new_chat_member.user,
                            context)
 
@@ -236,6 +237,9 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
     chat_id = chat.id
     admin_names = list_admin_names(context.bot, chat_id)
     for user in users:
+        if user.id in WARNED_USERS:
+            continue
+        WARNED_USERS.add(user.id)
         username = user.username or ''
         first_name = user.first_name or ''
         last_name = user.last_name or ''
@@ -278,7 +282,6 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
                 break
 
         if warned:
-            WARNED_USERS.add(user.id)
             log = ("User details violate the chat policy in chat %s\n"
                    "first_name = %s \n"
                    "Reason: %s\n")
@@ -291,6 +294,7 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
                                        },
                                        name=str(user.id))
         else:
+            WARNED_USERS.discard(user.id)
             log = ("User %s is verified. no banned words in user details.\n"
                    "user details not similar to the chat admins details.\n")
             logger.info(log, user.first_name)
@@ -312,9 +316,6 @@ def scan_chat_members(context: CallbackContext):
                 len(users_id), time_frame // 60)
 
     for user_id in users_id:
-        if user_id in WARNED_USERS:
-            # user is currently being warned
-            continue
         member = context.bot.get_chat_member(chat_id, user_id)
         db.update_chat_member_last_check(chat_id, user_id)
         if member.status in ['left', 'kicked']:
