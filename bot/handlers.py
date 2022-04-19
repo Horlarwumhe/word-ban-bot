@@ -58,7 +58,7 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     if status in ['left', 'kicked']:
         db.remove_chat_member(chat_member.chat.id,
                               chat_member.new_chat_member.user.id)
-    elif status == "member":
+    elif status in ["member", 'restricted']:
         check_user_details(chat_member.chat, chat_member.new_chat_member.user,
                            context)
 
