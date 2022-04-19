@@ -18,6 +18,7 @@ logger = logging.getLogger('bot')
 
 WARNED_USERS = set()
 
+
 def exception_handler(update: Update, context: CallbackContext):
     logger.exception(context.error or "Error")
 
@@ -52,14 +53,14 @@ def new_chat_member(update: Update, context: CallbackContext) -> None:
     # user = chat_member.new_chat_member.user
     status = chat_member.new_chat_member.status
     # chat_id = chat_member.chat.id
+    db.add_chat_member(chat_member.chat.id,
+                       chat_member.new_chat_member.user.id)
     if status in ['left', 'kicked']:
         db.remove_chat_member(chat_member.chat.id,
                               chat_member.new_chat_member.user.id)
-        return
-    db.add_chat_member(chat_member.chat.id,
-                       chat_member.new_chat_member.user.id)
-    check_user_details(chat_member.chat, chat_member.new_chat_member.user,
-                       context)
+    elif status == "member":
+        check_user_details(chat_member.chat, chat_member.new_chat_member.user,
+                           context)
 
 
 def chat_member_message(update: Update, context: CallbackContext):
