@@ -34,7 +34,8 @@ def check_banned_words(name, chat_id):
     return found
 
 
-def check_admin_names(admin_names, name: tuple[str, str]):
+def check_admin_names(admin_names, name):
+    #name tuple[str, str]
     if not name:
         return None
     if isinstance(name,str):
