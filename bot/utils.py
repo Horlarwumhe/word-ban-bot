@@ -25,7 +25,7 @@ def check_banned_words(name, chat_id):
     found = None
     if not name:
         return
-    name = ''.join(filter(str.isalpha, name)).lower()
+    name = lower_case_letters(name)
     banned_words = get_banned_words_list(chat_id)
     for word in banned_words:
         if word in name:
