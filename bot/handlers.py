@@ -217,13 +217,12 @@ def check_warned_user(context: CallbackContext):
         else:
             admins = list_admin_names(context.bot, chat_id)
             admin_usernames = list_admin_usernames(context.bot, chat_id)
-            fname = check_admin_names(admins, user_member.user.first_name
-                                      or '')
-            lname = check_admin_names(admins, user_member.user.last_name or '')
-            if lname or fname:
+            details = (user_member.user.first_name, user_member.user.last_name)
+            similar = check_admin_names(admins, details)
+            if similar:
                 context.bot.ban_chat_member(chat_id, user_id)
                 banned = True
-            elif check_admin_usernames(admin_usernames, username):
+            elif check_admin_usernames(admin_usernames, user_member.user.username):
                 context.bot.ban_chat_member(chat_id, user_id)
                 banned = True
 
@@ -235,6 +234,8 @@ def check_warned_user(context: CallbackContext):
 
 
 def check_user_details(chat: Chat, users, context: CallbackContext):
+    # import pdb
+    # pdb.set_trace()
     if not isinstance(users, list):
         users = [users]
     warned = False
@@ -256,9 +257,7 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
         else:
             mention = '<a href="tg://user?id={id}"> {first_name} </a>'.format(
                 id=user.id, first_name=user.first_name)
-        similar_name = check_admin_names(admin_names, first_name)
-        if not similar_name:
-            similar_name = check_admin_names(admin_names, last_name)
+        similar_name = check_admin_names(admin_names, (first_name, last_name))
         if not similar_name:
             similar_name = check_admin_usernames(admin_usernames, username)
         warning_time = str(config.USER_WARNED_TIME // 60)

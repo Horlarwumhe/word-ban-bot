@@ -34,27 +34,25 @@ def check_banned_words(name, chat_id):
     return found
 
 
-def check_admin_names(admin_names, name):
-    # remove no alphabetic character ,eg, _
+def check_admin_names(admin_names, name: tuple[str, str]):
     if not name:
-        return
-    username = ''.join(filter(str.isalpha, name)).lower()
+        return None
+    if isinstance(name,str):
+        name = (name,name)
+    fname, lname = map(lower_case_letters, name)
+    if not fname and not lname:
+        return None
     for admin in admin_names:
-        try:
-            fname, lname = map(str.lower, admin.split())
-        except ValueError:
-            fname = lname = admin.split()[0]
-        if fname.lower() in username or lname.lower() in username:
-            return admin
+        admin_fname, admin_lname = map(lower_case_letters, admin)
+        if fname == admin_fname and lname == admin_lname:
+            return "%s %s" % (admin[0], admin[1])
     return None
 
 
 def list_admin_names(bot, chat_id):
     admins = bot.get_chat_administrators(chat_id)
-    admins = [
-        "%s %s" % (u.user.first_name or '', u.user.last_name or '')
-        for u in admins
-    ]
+    admins = [(u.user.first_name or '', u.user.last_name or '')
+              for u in admins]
     return admins
 
 
@@ -65,6 +63,8 @@ def list_admin_usernames(bot, chat_id):
 
 
 def lower_case_letters(text):
+    if not text:
+        return ''
     return str_clean_pattern.sub('', text.lower())
 
 
@@ -73,10 +73,11 @@ def check_admin_usernames(admins, username):
         return None
     username = lower_case_letters(username)
     for name in admins:
+        real_name = name
         name = lower_case_letters(name)
         ratio = lev.ratio(name, username)
         if ratio > 0.8:
-            return name
+            return real_name
     return None
 
 
