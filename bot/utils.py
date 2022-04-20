@@ -1,14 +1,18 @@
 import functools
 import logging
+import re
+import Levenshtein as lev
 
 from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from bot.db import get_banned_words_list,add_chat_member
+from bot.db import get_banned_words_list, add_chat_member
 import bot.messages as M
 
 logger = logging.getLogger('bot')
+str_clean_pattern = re.compile('[^a-z]+')
+
 BANNED_WORDS_MESSAGE = (
     'Hello {user},Your name {name}\n'
     'is among the banned words for this chat\n'
@@ -54,8 +58,31 @@ def list_admin_names(bot, chat_id):
     return admins
 
 
+def list_admin_usernames(bot, chat_id):
+    admins = bot.get_chat_administrators(chat_id)
+    usernames = [u.user.username for u in admins if u.user.username]
+    return usernames
+
+
+def lower_case_letters(text):
+    return str_clean_pattern.sub('', text.lower())
+
+
+def check_admin_usernames(admins, username):
+    if not username:
+        return None
+    username = lower_case_letters(username)
+    for name in admins:
+        name = lower_case_letters(name)
+        ratio = lev.ratio(name, username)
+        if ratio > 0.8:
+            return name
+    return None
+
+
 # decorators
 def log_command(func):
+
     @functools.wraps(func)
     def wrapper(update: Update, context: CallbackContext):
         message = update.message
@@ -66,7 +93,7 @@ def log_command(func):
                " username = %s\n"
                "first_name = %s\n")
         logger.info(log, command, user.id, user.username, user.first_name)
-        add_chat_member(message.chat_id,user.id)
+        add_chat_member(message.chat_id, user.id)
         return func(update, context)
 
     return wrapper

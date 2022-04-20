@@ -7,8 +7,9 @@ from telegram.message import Message
 from telegram.chat import Chat
 
 from bot.db import (add_banned_word, get_banned_words_list, remove_banned_word)
-from bot.utils import (chat_admin_only, check_banned_words, check_admin_names,
-                       list_admin_names, log_chat_member, log_command,
+from bot.utils import (chat_admin_only, check_admin_usernames,
+                       check_banned_words, check_admin_names, list_admin_names,
+                       list_admin_usernames, log_chat_member, log_command,
                        sanitize_word, special_command)
 from bot.config import config
 import bot.messages as M
@@ -215,12 +216,17 @@ def check_warned_user(context: CallbackContext):
             banned = True
         else:
             admins = list_admin_names(context.bot, chat_id)
+            admin_usernames = list_admin_usernames(context.bot, chat_id)
             fname = check_admin_names(admins, user_member.user.first_name
                                       or '')
             lname = check_admin_names(admins, user_member.user.last_name or '')
             if lname or fname:
                 context.bot.ban_chat_member(chat_id, user_id)
                 banned = True
+            elif check_admin_usernames(admin_usernames, username):
+                context.bot.ban_chat_member(chat_id, user_id)
+                banned = True
+
         if banned:
             logger.info("User '%s' is banned \n ", user_member.user.first_name)
         else:
@@ -234,6 +240,7 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
     warned = False
     chat_id = chat.id
     admin_names = list_admin_names(context.bot, chat_id)
+    admin_usernames = list_admin_usernames(context.bot, chat_id)
     WARNED = WARNED_USERS.setdefault(chat_id, set())
     for user in users:
         if user.id in WARNED:
@@ -252,6 +259,8 @@ def check_user_details(chat: Chat, users, context: CallbackContext):
         similar_name = check_admin_names(admin_names, first_name)
         if not similar_name:
             similar_name = check_admin_names(admin_names, last_name)
+        if not similar_name:
+            similar_name = check_admin_usernames(admin_usernames, username)
         warning_time = str(config.USER_WARNED_TIME // 60)
         if similar_name:
             reason.append("user name similar to chat admins name")
