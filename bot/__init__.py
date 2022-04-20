@@ -16,4 +16,12 @@ formatter = logging.Formatter(
     datefmt='%d/%m/%Y %H:%M:%S %p')
 stream.setFormatter(formatter)
 logger.addHandler(stream)
+
+error_log = TimedRotatingFileHandler("logs/bot.error.log",
+                                  when="D",
+                                  encoding="utf-8",
+                                  errors="ignore")
+error_log.setLevel(logging.ERROR)
+error_log.setFormatter(formatter)
+logger.addHandler(error_log)
 logger.setLevel(logging.DEBUG)
