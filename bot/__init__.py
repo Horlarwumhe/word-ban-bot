@@ -8,8 +8,7 @@ logging.basicConfig(
 logger = logging.getLogger('bot')
 stream = TimedRotatingFileHandler("logs/bot.log",
                                   when="D",
-                                  encoding="utf-8",
-                                  errors="ignore")
+                                  encoding="utf-8")
 stream.setLevel(logging.DEBUG)
 formatter = logging.Formatter(
     '%(name)s %(asctime)s:%(levelname)s: %(message)s',
@@ -19,8 +18,7 @@ logger.addHandler(stream)
 
 error_log = TimedRotatingFileHandler("logs/bot.error.log",
                                   when="D",
-                                  encoding="utf-8",
-                                  errors="ignore")
+                                  encoding="utf-8")
 error_log.setLevel(logging.ERROR)
 error_log.setFormatter(formatter)
 logger.addHandler(error_log)
