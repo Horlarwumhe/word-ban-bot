@@ -127,7 +127,7 @@ def add_word(update: Update, context: CallbackContext):
             text = M.WORD_ADDED_MESSAGE.format(word=word)
         elif c > 1:
             # more than one
-            text = M.BANNED_WORDS_MESSAGE.format(word="New %s words " % c)
+            text = M.WORD_ADDED_MESSAGE.format(word="New %s words " % c)
             # text = f"New {c} words added to the list"
         else:
             text = M.WORD_EXISTS_MESSAGE.format(word=word)
